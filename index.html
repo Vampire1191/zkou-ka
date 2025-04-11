@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mini Test Challenge</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            background-color: #ffeef2;
+            color: #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            min-height: 100vh;
+            background-image: url('https://i.imgur.com/1X24O0h.png');
+            /* optional cute background */
+            background-repeat: repeat;
+        }
+
+        h1 {
+            color: #d6336c;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        button,
+        input[type=number] {
+            padding: 0.5rem 1rem;
+            margin: 1rem 0.5rem;
+            border: none;
+            border-radius: 1rem;
+            background: #ff69b4;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .heart {
+            color: #ff69b4;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Vyber testík <span class="heart">❤️</span></h1>
+        <div id="start-screen">
+            <button onclick="startExam('matematika')">Matematika</button>
+            <button onclick="startExam('osp')">OSP</button>
+        </div>
+
+        <div id="timer-screen" class="hidden">
+            <h2 id="subject-title"></h2>
+            <p>Zbývající čas: <span id="time"></span></p>
+            <button onclick="extendTime()">Ještě nejsem hotová</button>
+            <button onclick="finishExam()">Jsem hotová ❤️</button>
+            <div id="extra-time-field" class="hidden">
+                <input type="number" id="extra-minutes" placeholder="Kolik minut navíc?"> <br>
+                <button onclick="addExtraTime()">Přidat čas</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="hidden">
+            <h2>Gratuluji! 🎉</h2>
+            <p>Tvůj celkový čas: <strong id="total-time"></strong></p>
+            <h3>Tvůj klíč:</h3>
+            <pre id="answer-key"></pre>
+            <button onclick="resetExam()">Zkusit znovu 💪</button>
+        </div>
+    </div>
+
+    <script>
+        let examType;
+        let totalTime = 0;
+        let startTime;
+        let endTime;
+        let remainingTime;
+        const timeDisplay = document.getElementById("time");
+        const subjectTitle = document.getElementById("subject-title");
+
+        function startExam(type) {
+            examType = type;
+            const duration = type === 'matematika' ? 90 : 85;
+            startTime = Date.now();
+            endTime = startTime + duration * 60 * 1000;
+
+            localStorage.setItem("examStart", startTime);
+            localStorage.setItem("examEnd", endTime);
+            localStorage.setItem("examType", examType);
+
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("timer-screen").classList.remove("hidden");
+            subjectTitle.textContent = `Test: ${examType.toUpperCase()}`;
+            updateTimer();
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            endTime = parseInt(localStorage.getItem("examEnd"));
+            remainingTime = endTime - now;
+
+            if (remainingTime <= 0) {
+                timeDisplay.textContent = "Čas vypršel!";
+                document.getElementById("extra-time-field").classList.remove("hidden");
+                return;
+            }
+
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
+            timeDisplay.textContent = `${minutes}m ${seconds}s`;
+            setTimeout(updateTimer, 1000);
+        }
+
+        function extendTime() {
+            document.getElementById("extra-time-field").classList.remove("hidden");
+        }
+
+        function addExtraTime() {
+            const extra = parseInt(document.getElementById("extra-minutes").value);
+            if (!isNaN(extra) && extra > 0) {
+                endTime += extra * 60 * 1000;
+                localStorage.setItem("examEnd", endTime);
+                document.getElementById("extra-time-field").classList.add("hidden");
+                updateTimer();
+            }
+        }
+
+        function finishExam() {
+            const now = Date.now();
+            const usedTime = Math.floor((now - parseInt(localStorage.getItem("examStart"))) / 60000);
+            document.getElementById("total-time").textContent = `${usedTime} minut`;
+
+            const key = localStorage.getItem("examType") === 'matematika'
+                ? `1C 2C 3B 4B 5C 6D 7D 8B 9C 10B\n11A 12B 13C 14C 15B 16A 17D 18D 19D 20A\n21C 22B 23D 24B 25D 26B 27B 28D 29B 30A\n31C 32C 33A 34C 35B`
+                : `1B 2D 3A 4A 5B 6D 7DF 8BE 9DG 10C\n11C 12C 13C 14A 15B 16A 17B 18D 19D 19B\n20C 21C 22A 23B 24C 25A 26D 27C 28A 29C\n30A 31D 32A 33B 34B 35C 36D 37A 38B 39A\n40C 41A 42B 43C 44B 45A 46A 47B 48C 49A\n50A 51B 52B 53B 54D 55D 56D 57D 58C 59C\n60D 61D 62D 63B 64C 65D 66D`;
+
+            document.getElementById("timer-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.remove("hidden");
+            document.getElementById("answer-key").textContent = key;
+        }
+
+        function resetExam() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        // On page load
+        window.onload = function () {
+            const type = localStorage.getItem("examType");
+            const start = localStorage.getItem("examStart");
+            const end = localStorage.getItem("examEnd");
+
+            if (type && start && end) {
+                examType = type;
+                document.getElementById("start-screen").classList.add("hidden");
+                document.getElementById("timer-screen").classList.remove("hidden");
+                subjectTitle.textContent = `Test: ${examType.toUpperCase()}`;
+                updateTimer();
+            }
+        }
+    </script>
+</body>
+
+</html>
